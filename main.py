@@ -19,44 +19,43 @@ def main(video_path: str):
     
     import json # Add this at the very top of your main.py if it's not there!
 
-    # 2. THE BRAIN: Finding the Hook
-    print("\n[2/3] Analyzing transcript for viral highlights...")
+    import json
+    
+    # 2. THE BRAIN: Finding the Hooks
+    print("\n[2/3]  Analyzing transcript for top 5 viral highlights...")
     highlight_data = find_highlights(transcript)
     
-    # Check if the output is a raw JSON string and parse it
+    # Parse the JSON response
     if isinstance(highlight_data, str):
-        # Strip out markdown formatting if Gemini added it (e.g. ```json...```)
         clean_json = highlight_data.replace('```json', '').replace('```', '').strip()
-        highlight = json.loads(clean_json)
-        
-        start_time = float(highlight["start_time"])
-        end_time = float(highlight["end_time"])
-        score = int(highlight["virality_score"])
-        hook = highlight["hook_summary"]
+        parsed_data = json.loads(clean_json)
+        clips = parsed_data.get("clips", [])
     else:
-        # If it's already a Pydantic object, access attributes directly
-        start_time = float(highlight_data.start_time)
-        end_time = float(highlight_data.end_time)
-        score = int(highlight_data.virality_score)
-        hook = highlight_data.hook_summary
-    
-    print(f"   -> Found hook: '{hook}'")
-    print(f"   -> Virality Score: {score}/100")
-    print(f"   -> Timestamps: {start_time}s to {end_time}s")
+        clips = highlight_data.clips
 
-    # 3. THE MUSCLE: Rendering the Video
-    print("\n[3/3] Rendering vertical 9:16 clip...")
+    print(f"   -> Found {len(clips)} viral clips!")
+
+    # 3. THE MUSCLE: Rendering the Videos
+    print("\n[3/3]  Rendering vertical 9:16 clips...")
     
-    # Dynamically generate the output filename based on the input
     base_name = os.path.basename(video_path).split('.')[0]
     output_dir = "data/clips"
     os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, f"{base_name}_score_{score}.mp4")
     
-    render_clip(video_path, output_path, start_time, end_time)
+    # Loop through every clip Gemini found and render it
+    for i, clip in enumerate(clips):
+        start_time = float(clip["start_time"]) if isinstance(clip, dict) else float(clip.start_time)
+        end_time = float(clip["end_time"]) if isinstance(clip, dict) else float(clip.end_time)
+        score = int(clip["virality_score"]) if isinstance(clip, dict) else int(clip.virality_score)
+        hook = clip["hook_summary"] if isinstance(clip, dict) else clip.hook_summary
+        
+        output_path = os.path.join(output_dir, f"{base_name}_clip{i+1}_score{score}.mp4")
+        
+        print(f"\n   🎬 Rendering Clip {i+1}/5 | Score: {score} | Hook: '{hook}'")
+        render_clip(video_path, output_path, start_time, end_time)
     
     print("\n" + "="*50)
-    print(f" Pipeline Complete! Your final short is ready at: {output_path}")
+    print(f"✅ Batch Pipeline Complete! Your shorts are ready in {output_dir}")
     print("="*50 + "\n")
 
 if __name__ == "__main__":

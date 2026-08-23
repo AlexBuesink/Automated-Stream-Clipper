@@ -40,22 +40,3 @@ def find_highlights(transcript: str):
     )
     
     return response.text
-
-# Test data based on your Whisper output
-test_transcript = """
-[0.00s -> 3.24s]  shit, but not, but I got this one on one football, this one on
-[3.24s -> 8.28s]  one football event, how it is going to work. Everybody will be able to
-[8.28s -> 14.88s]  pull up, okay? We are going to host for the first 30 minutes of the
-[14.88s -> 24.48s]  event. The first 30 minutes will be picking out. 30, 30 people, 30
-[24.48s -> 30.54s]  football players, okay? 15 dBs, 15 wide receivers to compete against each
-[30.54s -> 39.30s]  other for a anonymous prize, okay? So, hey, if you want to pull up to Miami Beach
-[39.30s -> 44.46s]  for the one on one, make sure you comment on this post right now, DM and
-[44.46s -> 50.46s]  follow to make sure you will have future information. Let's do it. That's
-[50.46s -> 53.94s]  going to be so, oh my god, gay, that shit is going to be so far, okay? Now, I
-[53.94s -> 55.94s]  got to figure out a way to stream it.
-"""
-
-if __name__ == "__main__":
-    result = find_highlights(test_transcript)
-    print("\nFound Viral Highlight:")
-    print(result)

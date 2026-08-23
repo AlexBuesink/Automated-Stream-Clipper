@@ -40,19 +40,3 @@ def transcribe_audio(file_path: str, model_size: str = "small", device: str = "c
 
     formatted_transcript = "\n".join(formatted_lines)
     return formatted_transcript, raw_segments
-
-if __name__ == "__main__":
-    # Self-test block using your test audio file
-    test_media = "data/raw/test_audio.mp4"
-    
-    # Create dummy file for testing if it doesn't exist yet
-    if not os.path.exists("data/raw"):
-        os.makedirs("data/raw")
-        
-    if os.path.exists(test_media):
-        transcript, segments = transcribe_audio(test_media)
-        print("\n--- Formatted Transcript Sample ---")
-        print("\n".join(transcript.splitlines()[:3]))
-        print(f"Total segments extracted: {len(segments)}")
-    else:
-        print(f"Test file not found at {test_media}. Place a test .mp4 file there to run module tests.")

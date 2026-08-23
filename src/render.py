@@ -32,9 +32,3 @@ def render_clip(input_path: str, output_path: str, start_time: float, end_time: 
         print(f"Success! Clip saved to: {output_path}")
     except subprocess.CalledProcessError as e:
         print(f"Error rendering clip: {e}")
-
-if __name__ == "__main__":
-    # Test data (ignored when running main.py)
-    test_input = "data/raw/test_audio.mp4"
-    test_output = "data/clips/viral_clip.mp4"
-    render_clip(test_input, test_output, 24.48, 50.46, aspect_ratio="1:1")

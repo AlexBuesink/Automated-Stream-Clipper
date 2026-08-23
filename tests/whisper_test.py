@@ -14,7 +14,7 @@ def run_test():
         print("Model loaded on CPU.\n")
 
     # If you have an audio/video file named test_audio.mp4 in this folder:
-    test_file = "test_audio.mp4"
+    test_file = "data/raw/test_audio.mp4"
     
     import os
     if not os.path.exists(test_file):

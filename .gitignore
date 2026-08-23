@@ -222,4 +222,6 @@ __marimo__/
 *.mp3
 *.wav
 
+# Local media and test data
+data/
 

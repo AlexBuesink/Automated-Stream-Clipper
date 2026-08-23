@@ -29,7 +29,7 @@ To achieve fast transcription speeds, this project uses `faster-whisper` configu
 - You need a dedicated **NVIDIA GPU**.
 - You must have the [NVIDIA CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) and cuDNN installed and configured on your system path.
 *(Note: If you do not have an NVIDIA GPU, you will need to change `device="cuda"` to `device="cpu"` in `src/transcriber.py`, which will run significantly slower).*
-
+~
 **3. Environment Variables**
 You will need a Google Gemini API key to run the highlight detection.
 - Create a `.env` file in the root directory.

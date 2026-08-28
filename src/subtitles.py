@@ -114,10 +114,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 
 
+import os
+import textwrap
+from PIL import Image, ImageFont
+
 def generate_hook_header_file(hook_text: str, clip_duration: float, output_ass_path: str):
     """
     Creates a static top-header hook by merging overlapping rounded rectangles
-    to create a perfectly straight, stepped text box without diagonal slants.
+    to create a straight, stepped text box without diagonal slants.
     """
     ass_header = """[Script Info]
 ScriptType: v4.00+
@@ -134,7 +138,16 @@ Style: HookText,Arial,38,&H00000000,&H00000000,&H00FFFFFF,&H00000000,1,0,0,0,100
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     duration_str = format_timestamp(clip_duration)
-    lines = [line.strip() for line in hook_text.strip().split("\n") if line.strip()]
+    
+    # Ensure text cleanly wraps into 2-3 short lines if no \n was provided
+    raw_lines = [l.strip() for l in hook_text.strip().split("\n") if l.strip()]
+    lines = []
+    for l in raw_lines:
+        if len(l) > 28:
+            lines.extend(textwrap.wrap(l, width=28))
+        else:
+            lines.append(l)
+
     if not lines:
         return False
 
@@ -146,13 +159,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         except IOError:
             font = ImageFont.load_default()
 
-    pad_x = 24
-    pad_y = 12
+    pad_x = 16
+    pad_y = 8
     line_h = 46
     r = 12  # Rounded outer corner radius
     top_y = 60
     center_x = 540
-    overlap = 12  # Pixels to overlap vertically to fuse the boxes
+    overlap = 8
 
     events = []
     paths = []
@@ -168,7 +181,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         y1 = int(current_y)
         y2 = int(current_y + line_h + (pad_y * 2))
 
-        # Vector path for THIS line's exact width
         rect_path = (
             f"m {x1 + r} {y1} "
             f"l {x2 - r} {y1} "
@@ -185,13 +197,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         text_y = int((y1 + y2) / 2)
         events.append(f"Dialogue: 1,0:00:00.00,{duration_str},HookText,,0,0,0,,{{\\an5\\pos({center_x},{text_y})}}{line}\n")
 
-        # Advance Y for the next line, subtracting overlap to fuse the shapes seamlessly
         current_y = y2 - overlap
 
-    # Render all rectangles simultaneously on Layer 0
     combined_path = " ".join(paths)
     card_event = f"Dialogue: 0,0:00:00.00,{duration_str},HookCard,,0,0,0,,{{\\an7\\pos(0,0)\\p1}}{combined_path}{{\\p0}}\n"
-    
+
     os.makedirs(os.path.dirname(output_ass_path), exist_ok=True)
     with open(output_ass_path, "w", encoding="utf-8") as f:
         f.write(ass_header + card_event + "".join(events))

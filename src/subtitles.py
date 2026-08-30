@@ -1,5 +1,6 @@
 import os
 from PIL import Image, ImageFont
+import textwrap
 
 def format_timestamp(seconds: float) -> str:
     """Converts seconds into ASS timestamp format: H:MM:SS.cs"""
@@ -12,18 +13,37 @@ def format_timestamp(seconds: float) -> str:
         centis = 0
     return f"{hours}:{minutes:02d}:{secs:02d}.{centis:02d}"
 
+# Add this right above generate_ass_file in src/subtitles.py
+def hex_to_ass_color(hex_str: str) -> str:
+    """Converts standard HTML #RRGGBB hex to ASS format &H00BBGGRR&"""
+    hex_str = hex_str.lstrip('#')
+    if len(hex_str) != 6:
+        return "&H00FFFFFF&"  # Fallback to white
+    r, g, b = hex_str[0:2], hex_str[2:4], hex_str[4:6]
+    return f"&H00{b}{g}{r}&"
+
 def generate_ass_file(
     raw_segments,
     clip_start: float,
     clip_end: float,
     output_ass_path: str,
     max_words_per_line: int = 4,
-    pause_threshold: float = 0.45
+    pause_threshold: float = 0.45,
+    font_name: str = "Arial Black",
+    font_size: int = 54,
+    primary_color_hex: str = "#FFFF00",   # Active spoken word
+    secondary_color_hex: str = "#FFFFFF", # Inactive word
+    outline_color_hex: str = "#000000",   # Text outline
+    outline_thickness: int = 5
 ):
     """
-    Generates flicker-free ASS subtitles where ONLY the currently spoken word is yellow,
-    and previous/upcoming words remain white, with zero redraw jitter.
+    Generates flicker-free ASS subtitles with highly customizable fonts, colors, and word limits.
     """
+    # Convert chosen hex colors to subtitle format
+    primary_ass = hex_to_ass_color(primary_color_hex)
+    secondary_ass = hex_to_ass_color(secondary_color_hex)
+    outline_ass = hex_to_ass_color(outline_color_hex)
+
     clip_words = []
     for segment in raw_segments:
         if not hasattr(segment, "words") or not segment.words:
@@ -40,7 +60,7 @@ def generate_ass_file(
         print(f"Warning: No spoken words found between {clip_start}s and {clip_end}s.")
         return False
 
-    # 1. Group words using pause detection & max word count
+    # 1. Group words using pause detection & the dynamic max word count
     grouped_lines = []
     current_chunk = []
 
@@ -61,8 +81,8 @@ def generate_ass_file(
     if current_chunk:
         grouped_lines.append(current_chunk)
 
-    # 2. ASS Header: Centered, White text, Black Outline
-    ass_header = """[Script Info]
+    # 2. ASS Header injecting all the custom styles
+    ass_header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: 1080
 PlayResY: 1080
@@ -70,19 +90,19 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial Black,54,&H00FFFFFF,&H00000000,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,0,5,20,20,0,1
+Style: Default,{font_name},{font_size},{secondary_ass},&H00000000,{outline_ass},&H80000000,-1,0,0,0,100,100,0,0,1,{outline_thickness},0,5,20,20,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
-    # 3. Build seamless single-word highlight states by closing timestamp gaps
+    # 3. Build seamless single-word highlight states
     dialogue_lines = []
     for chunk in grouped_lines:
         for idx, active_word in enumerate(chunk):
             w_start = active_word["start"]
             
-            # Bridge the gap: Extend this word's end time directly to the next word's start time
+            # Bridge the gap
             if idx < len(chunk) - 1:
                 w_end = chunk[idx + 1]["start"]
             else:
@@ -94,10 +114,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             line_parts = []
             for j, w in enumerate(chunk):
                 if j == idx:
-                    # Current active word -> YELLOW
-                    line_parts.append(f"{{\\c&H0000FFFF&}}{w['word']}{{\\c&H00FFFFFF&}}")
+                    # Current active word gets primary color
+                    line_parts.append(f"{{\\c{primary_ass}}}{w['word']}{{\\c{secondary_ass}}}")
                 else:
-                    # Inactive word -> WHITE
+                    # Inactive word falls back to secondary color
                     line_parts.append(w["word"])
             
             line_text = " ".join(line_parts)
@@ -109,14 +129,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         f.write(ass_header)
         f.writelines(dialogue_lines)
 
-    print(f"Subtitles saved to: {output_ass_path}")
     return True
 
 
-
-import os
-import textwrap
-from PIL import Image, ImageFont
 
 def generate_hook_header_file(hook_text: str, clip_duration: float, output_ass_path: str):
     """
